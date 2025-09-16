@@ -28,9 +28,24 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_PROCESS_ROLES: broker
     volumes:
-      - ./data:/data/log_data  # 새로 추가된 부분
+      - ./data:/data/log_data
+    networks:
+      - cassandra_etl_net
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "9080:8080" # Access Kafka UI at http://localhost:9080
+    depends_on:
+      - kafka
+      - zookeeper
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      # Add both internal and external bootstrap servers for reliability
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092,localhost:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
     networks:
       - cassandra_etl_net
 
@@ -43,55 +58,6 @@ services:
       - cassandra_data:/var/lib/cassandra
     networks:
       - cassandra_etl_net
-
-  # postgres:
-  #   image: postgres:13
-  #   container_name: postgres
-  #   environment:
-  #     POSTGRES_USER: airflow
-  #     POSTGRES_PASSWORD: airflow
-  #     POSTGRES_DB: airflow
-  #   ports:
-  #     - "5432:5432"
-
-  # airflow-init:
-  #   image: apache/airflow:2.0.0
-  #   container_name: airflow-init
-  #   depends_on:
-  #     - postgres
-  #   environment:
-  #     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-  #     - AIRFLOW__WEBSERVER__RBAC=True
-  #     - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
-  #   entrypoint: ["airflow", "db", "init"]
-
-  # airflow-webserver:
-  #   image: apache/airflow:2.0.0
-  #   container_name: airflow-webserver
-  #   depends_on:
-  #     - postgres
-  #   ports:
-  #     - "8081:8080"
-  #   volumes:
-  #     - ./dags:/opt/airflow/dags
-  #   environment:  
-  #     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-  #     - AIRFLOW__WEBSERVER__RBAC=True
-  #     - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
-  #   command: ["airflow", "webserver"]
-
-  # airflow-scheduler:
-  #   image: apache/airflow:2.0.0
-  #   container_name: airflow-scheduler
-  #   depends_on:
-  #     - postgres
-  #   volumes:
-  #     - ./dags:/opt/airflow/dags
-  #   environment:
-  #     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-  #     - AIRFLOW__WEBSERVER__RBAC=True
-  #     - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
-  #   command: ["airflow", "scheduler"]
 
 volumes:
   cassandra_data:

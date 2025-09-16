@@ -1,0 +1,35 @@
+version: "3.9"
+services:
+  zookeeper:
+    image: bitnami/zookeeper:3.9
+    container_name: kc-zookeeper
+    restart: unless-stopped
+    networks: [ cassandra_etl_net ]
+    ports: [ "2181:2181" ]
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kc-kafka-zk
+    restart: unless-stopped
+    networks: [ cassandra_etl_net ]
+    depends_on: [ zookeeper ]
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    volumes:
+      - ../data/kafka:/var/lib/kafka/data
+
+  # 나머지(cassandra/hdfs/spark/kafka-ui)는 동일 → 필요한 경우 이 파일에 복붙/수정
+networks:
+  cassandra_etl_net:
+    external: true
+

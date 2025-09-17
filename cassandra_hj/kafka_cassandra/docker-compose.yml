@@ -72,7 +72,8 @@ services:
       - ../data/hdfs/namenode:/hadoop/dfs/name
 
   datanode:
-    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    image: apache/hadoop:3.3.6
+    # image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
     container_name: kc-hdfs-datanode
     restart: unless-stopped
     networks: [ cassandra_etl_net ]
@@ -82,7 +83,7 @@ services:
       - HDFS_CONF_dfs_datanode_http_address=0.0.0.0:9864
       - HDFS_CONF_dfs_datanode_ipc_address=0.0.0.0:9867
     ports:
-      - "9864:9864"   # DataNode UI
+      - "9865:9864"   # DataNode UI
     volumes:
       - ../data/hdfs/datanode:/hadoop/dfs/data
     depends_on:
@@ -106,6 +107,8 @@ services:
     depends_on:
       - namenode
       - datanode
+    volumes:
+      - ./spark_app:/opt/bitnami/spark/app  # 스파크 앱 지정
 
   spark-worker:
     image: bitnami/spark:3.5

@@ -1,6 +1,7 @@
 import os, time, csv, sys
 from kafka import KafkaProducer
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -18,21 +19,31 @@ def main():
         print(f"[ERROR] CSV not found: {CSV_PATH}", file=sys.stderr)
         sys.exit(1)
 
-    with open(CSV_PATH, newline='', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            # 간단히 CSV 행을 원문 JSON-like 문자열로
-            payload = str(row).encode("utf-8")
-            producer.send(TOPIC, payload)
-            sent += 1
-            if delay > 0:
-                time.sleep(delay)
-            if sent % 100 == 0:
-                print(f"sent={sent}", flush=True)
+    while True:  # keep looping forever
+        with open(CSV_PATH, newline='', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                # overwrite accessed_date with now()
+                row["accessed_date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+
+                # key = item_category (must be bytes)
+                key = row["item_category"].encode("utf-8")
+
+                # payload as string
+                payload = str(row).encode("utf-8")
+
+                producer.send(TOPIC, key=key, value=payload)
+                sent += 1
+
+                if delay > 0:
+                    time.sleep(delay)
+                if sent % 100 == 0:
+                    print(f"sent={sent}", flush=True)
+
+        # after finishing one pass, loop again (with fresh timestamps)
 
     producer.flush()
     print(f"Done. total sent={sent}")
 
 if __name__ == "__main__":
     main()
-

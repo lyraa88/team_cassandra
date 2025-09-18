@@ -10,7 +10,7 @@ services:
       - HDFS_CONF_dfs_namenode_datanode_registration_ip___hostname___check=false
       - FORMAT=true
     ports:
-      - "9870:9870"   # NameNode UI
+      - "9870:9870"   # NameNode UI 
     volumes:
       - ../data/hdfs/namenode:/hadoop/dfs/name
 

@@ -2,5 +2,5 @@
 4
 logs_clean 0 0
 logs_dlq 0 0
-logs_raw 0 4258
-logs_raw 1 2504
+logs_raw 0 0
+logs_raw 1 0

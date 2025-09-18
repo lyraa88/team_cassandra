@@ -1,0 +1,4 @@
+FROM apache/airflow:2.0.0
+USER root
+RUN pip install kafka-python cassandra-driver
+USER airflow

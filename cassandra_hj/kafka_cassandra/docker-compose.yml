@@ -1,0 +1,72 @@
+services:
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: kc-hdfs-namenode
+    restart: unless-stopped
+    networks: [ cassandra_etl_net ]
+    environment:
+      - CLUSTER_NAME=kc-hadoop
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
+      - HDFS_CONF_dfs_namenode_datanode_registration_ip___hostname___check=false
+      - FORMAT=true
+    ports:
+      - "9870:9870"   # NameNode UI
+    volumes:
+      - ../data/hdfs/namenode:/hadoop/dfs/name
+
+  datanode:
+    image: apache/hadoop:3.3.6
+    # image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: kc-hdfs-datanode
+    restart: unless-stopped
+    networks: [ cassandra_etl_net ]
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
+      - HDFS_CONF_dfs_datanode_address=0.0.0.0:9866
+      - HDFS_CONF_dfs_datanode_http_address=0.0.0.0:9864
+      - HDFS_CONF_dfs_datanode_ipc_address=0.0.0.0:9867
+    ports:
+      - "9865:9864"   # DataNode UI
+    volumes:
+      - ../data/hdfs/datanode:/hadoop/dfs/data
+    depends_on:
+      - namenode
+
+  spark-master:
+    image: bitnami/spark:3.5
+    container_name: kc-spark-master
+    restart: unless-stopped
+    networks: [ cassandra_etl_net ]
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_MASTER_HOST=spark-master
+    ports:
+      - "8081:8080"   # Spark Master UI
+      - "7077:7077"   # Spark RPC
+    depends_on:
+      - namenode
+      - datanode
+    volumes:
+      - ./spark_app:/opt/bitnami/spark/app  # 스파크 앱 지정
+
+  spark-worker:
+    image: bitnami/spark:3.5
+    container_name: kc-spark-worker
+    restart: unless-stopped
+    networks: [ cassandra_etl_net ]
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://kc-spark-master:7077
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+    depends_on:
+      - spark-master
+
+networks:
+  cassandra_etl_net:
+    external: true
+
